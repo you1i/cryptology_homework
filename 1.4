@@ -1,0 +1,347 @@
+#include <iostream>
+#include <ctime>
+
+using namespace std;
+
+int key[2] = { 0,1 }; //仿射key
+int key_s[26] = { 0 };//单表代换key
+char abc[26] = { 'a','b','c','d','e','f','g','h','i','j','k','l',
+				'm','n','o','p','q','r','s','t','u','v','w','x','y','z' }; //字母表
+char abc_s[26] = { 0 };//单表代换后的密码表
+int save1[100] = { 0 }; //明文的位置
+char plain_text[100]; //明文
+int save2[100] = { 0 }; //密文的位置
+char cipher_text[100]; //密文
+int len = 0;//长度
+int reverse_num = 0;
+int check[26] = { 0 };//单表代换检查
+
+
+int judge(int a, int b) //判断两数是否互质
+{
+	if (a == 1 || b == 1)
+	{
+		return 1;
+	}
+	while (1)
+	{
+		int t = a % b;
+		if (t == 0)
+		{
+			break;
+		}
+		else
+		{
+			a = b;
+			b = t;
+		}
+	}
+	if (b > 1)
+	{
+		return 0;
+	}
+	else
+	{
+		return 1;
+	}
+}
+
+int rev(int a) //求逆
+{
+	for (int i = 0; i < 25; i++)
+	{
+		if (a * i % 26 == 1)
+		{
+			return i;
+		}
+	}
+	return 0;
+}
+
+void create_random_key()//创建仿射密码随机密钥
+{
+	srand((unsigned)time(NULL));
+	while (judge(key[0], 26) != 1)
+	{
+		key[0] = rand() % 24 + 2;
+	}
+	key[1] = rand() % 26;
+	cout << "随机密钥为:key=(" << key[0] << "," << key[1] << ")" << endl;
+}
+
+void create_random_key_s()//创建单表代换密码随机密钥
+{
+	int i;
+	srand((unsigned)time(NULL));
+	int t = 0;
+	while (t != 26)
+	{
+		i = rand() % 26;
+		if (check[i] == 0) //如果这个随机数没有出现过，则放入key_s中，否则继续随机数
+		{
+			check[i] = 1;
+			key_s[t] = i;
+			t++;
+		}
+	}
+	cout << "加密函数为:" << endl;
+	for (i = 0; i < 26; i++)
+	{
+		cout << abc[i] << " ";
+	}
+	cout << endl;
+	for (i = 0; i < 26; i++)
+	{
+		abc_s[i] = char(key_s[i] + 'A');
+		cout << abc_s[i] << " ";
+	}
+	cout << endl;
+}
+
+void get_key_s()//输入单表代换密钥
+{
+	cout << "请输入与密文对应的明文:" << endl;
+	for (int i = 0; i < 26; i++)
+	{
+		cout << char('A' + i) << ":";
+		char j;
+		cin >> j;
+		key_s[i] = j - 'A';
+	}
+	cout << "解密函数为：" << endl;
+	for (int i = 0; i < 26; i++)
+	{
+		cout << char('A' + i) << " ";
+	}
+	cout << endl;
+	for (int i = 0; i < 26; i++)
+	{
+		abc_s[i] = char(key_s[i] + 'A');
+		cout << abc_s[i] << " ";
+	}
+	cout << endl;
+}
+
+void get_plaintext() //获取仿射明文
+{
+	cout << "请输入要加密的明文：";
+	int i, j;
+	cin >> plain_text;
+	len = strlen(plain_text);
+	for (i = 0; i < len; i++)
+	{
+		for (j = 0; j < 26; j++)
+		{
+			if (plain_text[i] == abc[j])
+			{
+				save1[i] = j;
+			}
+		}
+	}
+	cout << "明文为:" << plain_text << endl;
+	for (i = 0; i < len; i++)
+	{
+		cout << plain_text[i] << " = " << save1[i] << endl;
+	}
+}
+
+void get_ciphertext() //获取仿射密文
+{
+	cout << "请输入要解密的密文：";
+	int i, j;
+	cin >> cipher_text;
+	cout << "请输入密钥：";
+	cin >> key[0] >> key[1];
+	reverse_num = rev(key[0]);
+	len = strlen(cipher_text);
+	for (i = 0; i < len; i++)
+	{
+		for (j = 0; j < 25; j++)
+		{
+			if (cipher_text[i] == abc[j])
+			{
+				save2[i] = j;
+			}
+		}
+	}
+	cout << "密文为:" << cipher_text << endl;
+	for (i = 0; i < len; i++)
+	{
+		cout << cipher_text[i] << " = " << save2[i] << endl;
+	}
+}
+
+void encryption1()//仿射密码加密
+{
+	int i;
+	for (i = 0; i < len; i++)
+	{
+		save2[i] = (save1[i] * key[0] + key[1]) % 26;
+	}
+	for (i = 0; i < len; i++)
+	{
+		cipher_text[i] = abc[save2[i]];
+	}
+	cout << "加密后:" << endl;
+	for (i = 0; i < len; i++)
+	{
+		cout << save2[i] << " = " << cipher_text[i] << endl;
+	}
+	cout << "即密文为:";
+	for (i = 0; i < len; i++)
+	{
+		cout << cipher_text[i];
+	};
+}
+
+void declassify1()//仿射密码解密
+{
+	int i;
+	for (i = 0; i < len; i++)
+	{
+		save1[i] = ((save2[i] - key[1]) * reverse_num) % 26;
+		if (save1[i] < 0)
+		{
+			save1[i] = 26 - (save1[i] * -1);
+		}
+	}
+	for (i = 0; i < len; i++)
+	{
+		plain_text[i] = abc[save1[i]];
+	}
+	cout << "解密后:" << endl;
+	for (i = 0; i < len; i++)
+	{
+		cout << save1[i] << " = " << plain_text[i] << endl;
+	}
+	cout << "即明文为:";
+	for (i = 0; i < len; i++)
+	{
+		cout << plain_text[i];
+	};
+}
+
+void get_plaintext2() //获取单表代换明文
+{
+	getchar();
+	cout << "输入明文:";
+	cin.getline(plain_text, 100);
+	len = strlen(plain_text);
+}
+
+void get_ciphertext2() //获取单表代换密文
+{
+	getchar();
+	cout << "输入密文:";
+	cin.getline(cipher_text, 100);
+	len = strlen(cipher_text);
+}
+
+void encryption2()//单表代换密码加密
+{
+	int i, j;
+	for (i = 0; i < len; i++)
+	{
+		if (plain_text[i] == ' ')
+		{
+			i++;
+		}
+		for (j = 0; j < 26; j++)
+		{
+			if (plain_text[i] == abc[j])
+			{
+				cipher_text[i] = abc_s[j];
+			}
+		}
+	}
+	cout << "在加密前的明文为：";
+	for (i = 0; i < len; i++)
+	{
+		cout << plain_text[i] ;
+	}
+	cout << endl;
+	cout << "在加密后的密文为：";
+	for (i = 0; i < len; i++)
+	{
+		cout << cipher_text[i] ;
+	}
+	cout << endl;
+}
+
+void declassify2()//单表代换密码解密
+{
+	int i, j;
+	for (i = 0; i < len; i++)
+	{
+		if (cipher_text[i] == ' ')
+		{
+			i++;
+		}
+		for (j = 0; j < 26; j++)
+		{
+			if (cipher_text[i] == abc[j]-'a'+'A')
+			{
+				plain_text[i] = abc_s[j];
+			}
+		}
+	}
+	cout << "在解密前的密文为：";
+	for (i = 0; i < len; i++)
+	{
+		cout << cipher_text[i];
+	}
+	cout << endl;
+	cout << "在解密后的明文为：";
+	for (i = 0; i < len; i++)
+	{
+		cout << plain_text[i];
+	}
+	cout << endl;
+}
+
+int main()
+{
+	int option;
+	cout << "请选择密码: 1.仿射密码 2.单表代换密码" << endl;
+	cin >> option;
+	if (option == 1)
+	{
+		cout << "***仿射密码***" << endl;
+		cout << "请选择要进行的功能: 1.加密 2.解密" << endl;
+		cin >> option;
+		if (option == 1)
+		{
+			get_plaintext();
+			create_random_key();
+			encryption1();
+		}
+		else if (option == 2)
+		{
+			get_ciphertext();
+			declassify1();
+		}
+	}
+	else if (option == 2)
+	{
+		cout << "***单表代换密码***" << endl;
+		cout << "请选择要进行的功能：1.加密 2.解密" << endl;
+		cin >> option;
+		if (option == 1)
+		{
+			get_plaintext2();
+			create_random_key_s();
+			encryption2();
+		}
+		else if (option == 2)
+		{
+			get_ciphertext2();
+			get_key_s();
+			declassify2();
+		}
+	}
+	else if (option == 3)//测试用选项
+	{
+		get_key_s();
+	}
+	return 0;
+}
