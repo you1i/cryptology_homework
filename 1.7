@@ -1,0 +1,171 @@
+//2021.3.14 VISUAL STUDIO 2019
+
+#include <iostream>  
+#include <string>  
+#include <algorithm>  
+#include <math.h>  
+  
+using namespace std;  
+  
+string cipher_text;  
+string new_cipher_text;  
+  
+int len = 0;  
+int key_len = 0;  
+int key[100] = { 0 };    //存放密钥   
+float abc[] = { 0.082, 0.015, 0.028, 0.043, 0.127, 0.022, 0.02, 0.061, 0.07, 0.002, 0.008, 0.04, 0.024, 0.067, 0.075, 0.019, 0.001, 0.06, 0.063, 0.091, 0.028, 0.01, 0.023, 0.001, 0.02, 0.001 };  
+char aaa[26] = { 'a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z' };  
+char save[10];  
+  
+int GCD(int a, int b) //求GCD  
+{  
+    int t;  
+    if (a < b)  
+    {  
+        t = a;  
+        a = b;  
+        b = t;  
+    }  
+    while (b != 0)  
+    {  
+        t = a % b;  
+        a = b;  
+        b = t;  
+    }  
+    return a;  
+}  
+  
+void optimalize(string& s)   //优化密文 将大写转为小写，删除空格和标点符号  
+{  
+    int index = 0;  
+    if (!s.empty())  
+    {  
+        while ((index = s.find(' ', index)) != string::npos)  
+        {  
+            s.erase(index, 1);  
+        }  
+    }  
+    for (string::size_type i = 0; i < s.size(); i++)  
+    {  
+        if (!ispunct(s[i]))  
+        {  
+            new_cipher_text += s[i];  
+        }  
+    }  
+    transform(new_cipher_text.begin(), new_cipher_text.end(), new_cipher_text.begin(), ::tolower);  
+    cout << "密文经过优化后为：" << endl;  
+    len = size(new_cipher_text);  
+    cout << new_cipher_text << endl;  
+}  
+  
+void kasiski(string& s) //kasiski查找密钥长度  
+{  
+    int count, t = 0, s_len[100], record;  
+    char temp[3];  
+    for (int i = 0; i < len - 3; i++)  
+    {   
+        count = 0;  
+        temp[0] = s[i]; temp[1] = s[i + 1]; temp[2] = s[i + 2];  
+        record = i;  
+        for (int t = i + 3; t < len - 3; t++)  
+        {  
+            if (s[t] == temp[0] && s[t + 1] == temp[1] && s[t + 2] == temp[2])  
+            {  
+                count++;  
+                s_len[count - 1] = t - record;  
+                record = t;  
+            }  
+        }  
+        if (count >= 1)   
+        {  
+            cout << temp[0] << temp[1] << temp[2] << ": " << count + 1 <<",间距: ";  
+            for (int x = 0; x <= count - 1; x++)   
+            {  
+                cout << s_len[x] << ", ";  
+            }  
+            cout << endl;  
+        }  
+    }  
+    key_len = GCD(s_len[0], s_len[1]);  
+    cout << "猜测密钥长度为:" << key_len << endl;  
+}  
+  
+void chi(string &s)  
+{  
+    float a[7][26] = { 0 }; //根据密钥长度 7 分组  
+    float ci = 0.0;  
+    int n = 0;  
+    float ap[7][26] = { 0.0 };  
+    for (int i = 0; s[i] != '\0'; i++)//记录每一列中不同字母出现次数  
+    {  
+        a[i % 7][(s[i] - 'a')]++;   
+    }                                    //统计每个字母的频数  
+  
+    do   
+    {  
+        ci = 0;  
+        float L;  
+        for (int i = 0; i < 26; i++)  
+        {  
+            float fi = a[n][i];  
+            if (len % 7 - 1 >= n)//计算不同列的长度   
+            {  
+                L = len / 7 + 1;  
+            }  
+            else { L = len / 7; }  
+            float b = (fi / (int)L) * ((fi - 1) / ((int)L - 1));//计算重合指数   
+            ci = ci + b;  
+            ap[n][i] = fi / L;  
+        }  
+        float max = 0.0;  
+        int ke;  
+  
+        for (int k = 0; k <= 25; k++)  
+        {  
+            float correlation = 0.0;  
+            for (int i = 0; i < 26; i++)//计算卷积   
+            {  
+                correlation = correlation + ap[n][(i + k) % 26] * abc[i];  
+            }  
+            if (correlation > max)   
+            {  
+                max = correlation;  
+                ke = k;  
+            }  
+        }  
+        key[n] = ke;  
+        cout << "偏移量为：" << ke << endl;  
+        n++;  
+    } while (n < 7);  
+  
+    cout << "所以密钥为:" << endl;  
+  
+    for (int i = 0; i < n; i++)  
+    {  
+        cout << aaa[key[i]];  
+    }  
+  
+    cout << endl;  
+    cout << "明文为：" << endl;  
+  
+    for (int i = 0; s[i] != '\0'; i++)//输出明文  
+    {  
+        int num = i % 7;  
+        int no = s[i] - 'a';  
+        int ex = no - key[num];  
+        s[i] = (ex + 26) % 26 + 'a';  
+    }  
+    cout << s;  
+}  
+  
+int main()  
+{  
+    cout << "***维吉尼亚密码求明文***" << endl;  
+    cout << "请输入密文：" << endl;  
+    getline(cin, cipher_text);  
+    optimalize(cipher_text); //优化  
+    kasiski(new_cipher_text); //kasiski查找密钥长度  
+    //cout << size(new_cipher_text);  
+    chi(new_cipher_text);//拟重合指数法  
+    return 0;  
+}  
